@@ -1,94 +1,151 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class=""> <!-- Start without 'dark' class, JS will add it -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume Classifier</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
         }
-        .gradient-bg {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        /* Custom scrollbar for better dark mode aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
         }
     </style>
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
 
-    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-2xl p-8 md:p-12 space-y-8">
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        
         <!-- Header -->
-        <div>
-            <h1 class="text-4xl font-bold text-gray-800 text-center">📄 Resume Classifier</h1>
-            <p class="text-gray-600 text-center mt-2">
-                Paste the text from a resume below to automatically classify it into one of 24 professional categories using a fine-tuned DistilBERT model.
-            </p>
-        </div>
-
-        <!-- Input Area -->
-        <div class="space-y-4">
-            <label for="resumeText" class="block text-lg font-medium text-gray-700">Resume Text</label>
-            <textarea id="resumeText" rows="12" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-300" placeholder="Enter resume text here..."></textarea>
-        </div>
-
-        <!-- Action Button -->
-        <div class="text-center">
-            <button id="classifyBtn" class="bg-blue-600 text-white font-bold text-lg py-3 px-10 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-transform duration-200 transform hover:scale-105">
-                Classify Resume
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
+                📄 Resume Classifier
+            </h1>
+            <button id="theme-toggle" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-slate-100 dark:focus:ring-offset-slate-900">
+                <svg id="theme-icon-light" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <svg id="theme-icon-dark" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
             </button>
-        </div>
+        </header>
 
-        <!-- Result Display -->
-        <div id="result" class="text-center pt-6 space-y-4" style="display: none;">
-            <!-- Loading Spinner -->
-            <div id="loader" class="flex justify-center items-center" style="display: none;">
-                <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="text-lg text-gray-600">Analyzing...</p>
+        <!-- Main Content Card -->
+        <main class="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-2xl shadow-lg">
+            <p class="mb-6 text-slate-600 dark:text-slate-400">
+                Paste the text from a resume into the box below. The fine-tuned DistilBERT model will analyze the content and predict the professional category.
+            </p>
+
+            <!-- Input Text Area -->
+            <div class="mb-4">
+                <label for="resume-text" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Resume Text</label>
+                <textarea id="resume-text" rows="12" class="w-full p-4 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow" placeholder="Enter resume text here..."></textarea>
             </div>
-            <!-- Prediction Output -->
-            <div id="predictionOutput" style="display: none;">
-                <h2 class="text-xl font-semibold text-gray-700">Predicted Category:</h2>
-                <p id="categoryText" class="text-3xl font-bold text-blue-600 bg-blue-50 rounded-lg py-3 mt-2"></p>
+
+            <!-- Action Button -->
+            <div class="text-center mb-6">
+                <button id="classify-btn" class="w-full md:w-auto bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-white dark:focus:ring-offset-slate-800 transition-transform transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed">
+                    Classify Resume
+                </button>
             </div>
-            <!-- Error Message -->
-             <div id="errorOutput" class="text-red-600 bg-red-50 p-4 rounded-lg" style="display: none;"></div>
-        </div>
+
+            <!-- Result Section -->
+            <div id="result-container" class="hidden min-h-[100px] p-6 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg text-center flex justify-center items-center">
+                <!-- Loading Spinner -->
+                <div id="loading-spinner" class="hidden">
+                    <svg class="animate-spin h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <!-- Prediction Result -->
+                <div id="prediction-result" class="hidden">
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-1">Predicted Category</p>
+                    <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400" id="category-output"></p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500" id="confidence-output"></p>
+                </div>
+                <!-- Error Message -->
+                <div id="error-message" class="hidden">
+                    <p class="text-red-500 font-medium">An error occurred. Please try again.</p>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        // Get references to DOM elements
-        const classifyBtn = document.getElementById('classifyBtn');
-        const resumeText = document.getElementById('resumeText');
-        const resultDiv = document.getElementById('result');
-        const loader = document.getElementById('loader');
-        const predictionOutput = document.getElementById('predictionOutput');
-        const categoryText = document.getElementById('categoryText');
-        const errorOutput = document.getElementById('errorOutput');
+        const classifyBtn = document.getElementById('classify-btn');
+        const resumeText = document.getElementById('resume-text');
+        const resultContainer = document.getElementById('result-container');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const predictionResult = document.getElementById('prediction-result');
+        const errorMessage = document.getElementById('error-message');
+        const categoryOutput = document.getElementById('category-output');
+        const confidenceOutput = document.getElementById('confidence-output');
 
-        // Add event listener to the button
+        // --- Dark Mode Toggle Logic ---
+        const themeToggle = document.getElementById('theme-toggle');
+        const lightIcon = document.getElementById('theme-icon-light');
+        const darkIcon = document.getElementById('theme-icon-dark');
+        const htmlEl = document.documentElement;
+
+        // Function to apply the theme
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                htmlEl.classList.add('dark');
+                lightIcon.classList.add('hidden');
+                darkIcon.classList.remove('hidden');
+            } else {
+                htmlEl.classList.remove('dark');
+                lightIcon.classList.remove('hidden');
+                darkIcon.classList.add('hidden');
+            }
+        }
+
+        // Event listener for the toggle button
+        themeToggle.addEventListener('click', () => {
+            const isDark = htmlEl.classList.contains('dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
+
+        // On page load, check for saved theme preference
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        });
+
+
+        // --- Classification Logic ---
         classifyBtn.addEventListener('click', async () => {
-            const text = resumeText.value;
-
-            // Simple validation
-            if (!text || !text.trim()) {
+            const text = resumeText.value.trim();
+            if (!text) {
                 alert('Please enter some resume text.');
                 return;
             }
 
-            // Reset UI for new prediction
-            resultDiv.style.display = 'block';
-            loader.style.display = 'flex';
-            predictionOutput.style.display = 'none';
-            errorOutput.style.display = 'none';
+            // Reset UI
+            resultContainer.classList.remove('hidden');
+            loadingSpinner.classList.remove('hidden');
+            predictionResult.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            classifyBtn.disabled = true;
 
             try {
-                // Send the text to the backend API
                 const response = await fetch('/predict', {
                     method: 'POST',
                     headers: {
@@ -98,23 +155,22 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'An unknown error occurred.');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
-                
-                // Display the result
-                categoryText.textContent = `✨ ${data.predicted_category} ✨`;
-                predictionOutput.style.display = 'block';
+
+                // Display result
+                categoryOutput.textContent = data.category;
+                confidenceOutput.textContent = `Confidence: ${(data.confidence * 100).toFixed(2)}%`;
+                predictionResult.classList.remove('hidden');
 
             } catch (error) {
-                // Display any errors
-                errorOutput.textContent = `Error: ${error.message}`;
-                errorOutput.style.display = 'block';
+                console.error('Classification error:', error);
+                errorMessage.classList.remove('hidden');
             } finally {
-                // Hide loader regardless of outcome
-                loader.style.display = 'none';
+                loadingSpinner.classList.add('hidden');
+                classifyBtn.disabled = false;
             }
         });
     </script>
