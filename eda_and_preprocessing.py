@@ -51,7 +51,7 @@ def preprocess_text(text):
     # 3. Convert to lowercase
     text = text.lower()
 
-    # 4. **IMPROVED**: Remove special characters but keep numbers and key symbols (+, #, .)
+    # 4. Remove special characters but keep numbers and key symbols (+, #, .)
     # This preserves terms like 'c++', '.net', 'python 3.9', etc.
     text = re.sub(r'[^a-z0-9\s\+#\.]', '', text)
 
