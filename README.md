@@ -5,8 +5,8 @@ This guide provides instructions to set up and run the resume classification pro
 **1. Clone the repository:**
 
 ```bash
-git clone <your-repository-url>
-cd <repository-name>
+git clone https://github.com/madrazaldi/resume-bert-project.git
+cd resume-bert-project
 ```
 
 **2. Create and activate a Python virtual environment:**
