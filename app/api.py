@@ -1,82 +1,77 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+from transformers import pipeline
 import torch
-import os
 
-# --- Configuration ---
-# The model ID from the Hugging Face Hub for our fine-tuned model.
-MODEL_ID = "madrazaldi/resume-classifier-distilbert-enhanced"
+# --- App Setup ---
+app = FastAPI(
+    title="Resume Classification API",
+    description="An API to classify resume text into one of 24 professional categories.",
+    version="1.0"
+)
 
-# --- Pydantic Model for Request Body ---
+# --- Model Loading ---
+# This is a global variable that will hold the loaded model.
+# The model is loaded once when the application starts.
+classifier = None
+
+@app.on_event("startup")
+def load_model():
+    """
+    Load the model from the Hugging Face Hub on application startup.
+    This is a long-running operation and should only be done once.
+    """
+    global classifier
+    print("Loading model from Hugging Face Hub...")
+    
+    # Set the device to CPU. For inference, a GPU is often not necessary and
+    # this makes the application more portable.
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Device set to use {device}")
+
+    # Your model's ID on the Hugging Face Hub
+    model_id = "madrazaldi/resume-classifier-distilbert-enhanced"
+    
+    classifier = pipeline(
+        "text-classification",
+        model=model_id,
+        tokenizer=model_id,
+        device=device
+    )
+    print("✅ Model loaded successfully!")
+
+# --- API Endpoints ---
 class ResumeRequest(BaseModel):
     text: str
 
-# --- FastAPI App Initialization ---
-app = FastAPI()
+class PredictionResponse(BaseModel):
+    category: str
+    confidence: float
 
-# --- Load Model and Create Pipeline ---
-# We load the model and tokenizer once when the application starts.
-# This is a critical optimization to avoid reloading the model on every request.
-print("Loading model from Hugging Face Hub...")
-try:
-    # Use a pipeline for simplified inference
-    classifier = pipeline(
-        "text-classification",
-        model=MODEL_ID,
-        tokenizer=MODEL_ID,
-        # Use CPU for deployment as it's more portable and sufficient for single predictions.
-        # If you have a GPU server, you could change this to device=0.
-        device=-1 
-    )
-    print("✅ Model loaded successfully!")
-except Exception as e:
-    print(f"❌ Error loading model: {e}")
-    classifier = None
-
-# --- API Endpoints ---
-@app.post("/predict")
-async def predict(request: ResumeRequest):
+@app.post("/predict", response_model=PredictionResponse)
+def predict(request: ResumeRequest):
     """
-    Receives resume text, runs it through the classification model,
-    and returns the predicted category.
+    Accepts resume text and returns the predicted category.
     """
-    if classifier is None:
-        return {"error": "Model is not available. Please check the server logs."}, 500
-
+    if not classifier:
+        raise HTTPException(status_code=503, detail="Model is not loaded yet. Please wait.")
+    
     if not request.text or not request.text.strip():
-        return {"error": "Resume text cannot be empty."}, 400
-
+        raise HTTPException(status_code=400, detail="Input text cannot be empty.")
+        
     try:
-        # The pipeline handles tokenization and inference for us.
-        prediction = classifier(request.text)
-        
-        # The pipeline returns a list of dictionaries, e.g., [{'label': 'ENGINEERING', 'score': 0.99...}]
-        # We just need the label from the first result.
-        predicted_category = prediction[0]['label']
-        
-        return {"predicted_category": predicted_category}
-
+        prediction = classifier(request.text)[0]
+        return PredictionResponse(
+            category=prediction['label'],
+            confidence=prediction['score']
+        )
     except Exception as e:
         print(f"Error during prediction: {e}")
-        return {"error": "An unexpected error occurred during prediction."}, 500
+        raise HTTPException(status_code=500, detail="Failed to process the request.")
 
-# --- Serve Static Frontend ---
-# This mounts the 'static' directory, making files inside it accessible from the browser.
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    """
-    Serves the main index.html file for the user interface.
-    """
-    # Construct the full path to the index.html file
-    index_path = os.path.join("app/static", "index.html")
-    try:
-        with open(index_path, "r") as f:
-            return HTMLResponse(content=f.read(), status_code=200)
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Frontend file not found</h1>", status_code=404)
+# --- Static File Serving ---
+# Mount the 'static' directory to serve the index.html file.
+# The path is now relative to the location of this script inside the container.
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
