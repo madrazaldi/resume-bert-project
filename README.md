@@ -28,7 +28,6 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install transformers datasets scikit-learn pandas matplotlib seaborn nltk accelerate protobuf
 ```
 
-**5. Download the Dataset:** You will need the `Resume.csv` dataset for this project. Download it and place the file in the root of the project directory.
 
 ## 🚀 Usage
 
