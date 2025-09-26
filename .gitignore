@@ -19,6 +19,5 @@ pycache/
 *.png
 *.pdf
 *.csv
-*.txt
 
 upload_to_hub.py

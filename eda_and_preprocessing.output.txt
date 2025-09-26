@@ -1,0 +1,18 @@
+(.venv) [anonymoize@absolutepeak resume-bert-project]$ python eda_and_preprocessing.py 
+Downloading NLTK data...
+NLTK data downloaded.
+Loading data from Resume.csv...
+
+Starting text preprocessing with IMPROVED logic...
+Text preprocessing complete.
+Cleaned data saved to cleaned_resumes.csv
+
+Starting Exploratory Data Analysis...
+Saved category distribution plot to category_distribution.png
+Saved word count distribution plot to word_count_distribution.png
+Saved top 20 words plot to top_n_words.png
+EDA complete.
+
+Splitting data into train, validation, and test sets...
+
+Data splitting complete. Files saved.
