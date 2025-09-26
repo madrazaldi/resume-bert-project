@@ -19,8 +19,7 @@ pycache/
 *.pdf
 *.csv
 !artifacts/*.csv
-
+.txt
 upload_to_hub.py
-
 .DS_Store
 __pycache__/
