@@ -17,6 +17,8 @@ This project now covers:
 
 1) **Clone + venv**
 ```
+git clone https://github.com/madrazaldi/resume-bert-project.git
+cd resume-bert-project
 python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
