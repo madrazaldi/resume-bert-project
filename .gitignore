@@ -1,0 +1,17 @@
+.venv/
+venv/
+env/
+
+cleaned_resumes.csv
+train.csv
+validation.csv
+test.csv
+
+results/
+logs/
+
+pycache/
+*.pyc
+
+*.png
+*.pdf
