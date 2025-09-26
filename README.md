@@ -1,3 +1,11 @@
+---
+title: Resume Classifier
+emoji: 📄
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
 # Transformer-Based Resume Classification: Setup Guide
 This guide provides instructions to set up and run the resume classification project on a local machine with an NVIDIA GPU.
 ## 🛠️ Setup and Installation
