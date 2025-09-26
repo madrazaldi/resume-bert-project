@@ -2,11 +2,13 @@
 venv/
 env/
 
-Resume.csv
+
 cleaned_resumes.csv
 train.csv
 validation.csv
 test.csv
+Resume.csv
+
 
 results/
 logs/
