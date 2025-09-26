@@ -2,6 +2,7 @@
 venv/
 env/
 
+Resume.csv
 cleaned_resumes.csv
 train.csv
 validation.csv
