@@ -1,24 +1,23 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim
+FROM python:3.9
 
-# Set the working directory in the container
-WORKDIR /code
+# Create a non-root user for security
+RUN useradd -m -u 1000 user
+USER user
 
-# Copy the dependencies file to the working directory
-COPY ./app/requirements.txt /code/requirements.txt
+# Set environment variables
+ENV PATH="/home/user/.local/bin:$PATH"
+WORKDIR /app
 
-# Install any needed packages specified in requirements.txt
-# We use --no-cache-dir to keep the image size small
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy and install dependencies first to leverage Docker layer caching
+COPY --chown=user ./app/requirements.txt requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-# Copy the rest of the application code from the 'app' directory into the container
-COPY ./app /code/app
+# Copy the application code from the local 'app' directory into the container's WORKDIR
+COPY --chown=user ./app .
 
-# Expose the port the app runs on
-EXPOSE 8000
-
-# Define the command to run your app using uvicorn
-# It will look for the 'app' object in the 'app.api' module
-CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command to run the application
+# This tells uvicorn to run the 'app' object from the 'api.py' file
+# and listen on port 7860, as required by Hugging Face Spaces.
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "7860"]
 
