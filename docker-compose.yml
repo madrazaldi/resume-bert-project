@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  web:
+    # Build the Docker image from the Dockerfile in the current directory
+    build: .
+    # Name the container for easy reference
+    container_name: resume_classifier_app
+    # Map port 8000 on the host machine to port 8000 in the container
+    ports:
+      - "8000:8000"

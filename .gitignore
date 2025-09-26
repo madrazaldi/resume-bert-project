@@ -15,3 +15,6 @@ pycache/
 
 *.png
 *.pdf
+*.txt
+
+upload_to_hub.py

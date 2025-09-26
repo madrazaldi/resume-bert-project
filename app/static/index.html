@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Classifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-2xl p-8 md:p-12 space-y-8">
+        <!-- Header -->
+        <div>
+            <h1 class="text-4xl font-bold text-gray-800 text-center">📄 Resume Classifier</h1>
+            <p class="text-gray-600 text-center mt-2">
+                Paste the text from a resume below to automatically classify it into one of 24 professional categories using a fine-tuned DistilBERT model.
+            </p>
+        </div>
+
+        <!-- Input Area -->
+        <div class="space-y-4">
+            <label for="resumeText" class="block text-lg font-medium text-gray-700">Resume Text</label>
+            <textarea id="resumeText" rows="12" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-300" placeholder="Enter resume text here..."></textarea>
+        </div>
+
+        <!-- Action Button -->
+        <div class="text-center">
+            <button id="classifyBtn" class="bg-blue-600 text-white font-bold text-lg py-3 px-10 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-transform duration-200 transform hover:scale-105">
+                Classify Resume
+            </button>
+        </div>
+
+        <!-- Result Display -->
+        <div id="result" class="text-center pt-6 space-y-4" style="display: none;">
+            <!-- Loading Spinner -->
+            <div id="loader" class="flex justify-center items-center" style="display: none;">
+                <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-lg text-gray-600">Analyzing...</p>
+            </div>
+            <!-- Prediction Output -->
+            <div id="predictionOutput" style="display: none;">
+                <h2 class="text-xl font-semibold text-gray-700">Predicted Category:</h2>
+                <p id="categoryText" class="text-3xl font-bold text-blue-600 bg-blue-50 rounded-lg py-3 mt-2"></p>
+            </div>
+            <!-- Error Message -->
+             <div id="errorOutput" class="text-red-600 bg-red-50 p-4 rounded-lg" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to DOM elements
+        const classifyBtn = document.getElementById('classifyBtn');
+        const resumeText = document.getElementById('resumeText');
+        const resultDiv = document.getElementById('result');
+        const loader = document.getElementById('loader');
+        const predictionOutput = document.getElementById('predictionOutput');
+        const categoryText = document.getElementById('categoryText');
+        const errorOutput = document.getElementById('errorOutput');
+
+        // Add event listener to the button
+        classifyBtn.addEventListener('click', async () => {
+            const text = resumeText.value;
+
+            // Simple validation
+            if (!text || !text.trim()) {
+                alert('Please enter some resume text.');
+                return;
+            }
+
+            // Reset UI for new prediction
+            resultDiv.style.display = 'block';
+            loader.style.display = 'flex';
+            predictionOutput.style.display = 'none';
+            errorOutput.style.display = 'none';
+
+            try {
+                // Send the text to the backend API
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'An unknown error occurred.');
+                }
+
+                const data = await response.json();
+                
+                // Display the result
+                categoryText.textContent = `✨ ${data.predicted_category} ✨`;
+                predictionOutput.style.display = 'block';
+
+            } catch (error) {
+                // Display any errors
+                errorOutput.textContent = `Error: ${error.message}`;
+                errorOutput.style.display = 'block';
+            } finally {
+                // Hide loader regardless of outcome
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
+
