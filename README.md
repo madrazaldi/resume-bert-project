@@ -42,7 +42,7 @@ The project is designed to be run sequentially. The complete workflow is as foll
 - **Install PyTorch with CUDA support (Required for Training):**
     
     ```
-    pip install torch --index-url [https://download.pytorch.org/whl/cu121](https://download.pytorch.org/whl/cu121)
+    pip install torch --index-url https://download.pytorch.org/whl/cu121
     ```
     
 - **Install All Project Dependencies:**
