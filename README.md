@@ -28,8 +28,8 @@ The project is designed to be run sequentially. The complete workflow is as foll
 - **Clone the repository:**
     
     ```
-    git clone <your-repository-url>
-    cd <repository-name>
+    git clone https://github.com/madrazaldi/resume-bert-project
+    cd https://github.com/madrazaldi/resume-bert-project
     ```
     
 - **Create and activate a Python virtual environment:**
