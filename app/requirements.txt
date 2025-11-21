@@ -8,3 +8,4 @@ pandas
 numpy
 Pillow
 python-multipart
+protobuf

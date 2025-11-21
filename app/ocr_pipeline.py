@@ -20,7 +20,7 @@ class OcrEngine:
     Minimal wrapper around TrOCR for turning resume images into text.
     """
 
-    def __init__(self, model_name: str = "microsoft/trocr-small-printed", use_fast: bool = True):
+    def __init__(self, model_name: str = "microsoft/trocr-small-printed", use_fast: bool = False):
         self.model_name = model_name
         self.available = False
         try:
