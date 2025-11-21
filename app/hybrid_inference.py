@@ -118,7 +118,13 @@ class HybridPredictor:
     def predict(self, text: str) -> Optional[Tuple[str, float]]:
         if not self.available:
             return None
-        tokens = self.tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=self.cfg.max_length)
+        tokens = self.tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            max_length=self.cfg.max_length,
+        )
         tfidf = self.vectorizer.transform([text])
         tfidf_reduced = self.svd.transform(tfidf)
         batch = {

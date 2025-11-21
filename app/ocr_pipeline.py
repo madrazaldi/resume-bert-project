@@ -46,7 +46,11 @@ class OcrEngine:
         lines = self._split_lines(image)
 
         # Batch lines to keep GPU/MPS busy and cut latency.
-        pixel_values = self.processor(images=lines, return_tensors="pt").pixel_values.to(DEVICE)
+        pixel_values = self.processor(
+            images=lines,
+            return_tensors="pt",
+            padding=True,  # ensure batch has consistent shapes
+        ).pixel_values.to(DEVICE)
         generated_ids = self.model.generate(
             pixel_values,
             max_new_tokens=96,  # still bounded, handles denser lines
