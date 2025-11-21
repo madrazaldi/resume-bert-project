@@ -17,6 +17,8 @@ RUN pip install --no-cache-dir --upgrade torch==2.2.2 --index-url https://downlo
 
 # Copy the application code from the local 'app' directory into the container's WORKDIR
 COPY --chown=user ./app .
+# Copy hybrid artifacts for inference (optional; falls back if absent)
+COPY --chown=user ./artifacts ./artifacts
 
 # Command to run the application
 # This tells uvicorn to run the 'app' object from the 'api.py' file
