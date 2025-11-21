@@ -9,3 +9,5 @@ numpy
 Pillow
 python-multipart
 protobuf
+requests
+python-dotenv

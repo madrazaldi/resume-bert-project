@@ -3,10 +3,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from transformers import pipeline
 import torch
+from dotenv import load_dotenv
 
 # Local modules live in the same directory when copied into the container
 from hybrid_inference import HybridPredictor
 from ocr_pipeline import OcrEngine
+
+load_dotenv()
 
 # --- App Setup ---
 app = FastAPI(
