@@ -158,6 +158,11 @@ async def predict_ocr(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Failed to process the request.")
 
 # --- Static File Serving ---
-# Mount the 'static' directory to serve the index.html file.
-# The path is now relative to the location of this script inside the container.
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Resolve static directory relative to this file so it works both locally and in Docker
+from pathlib import Path  # noqa: E402
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+if not STATIC_DIR.exists():
+    raise RuntimeError(f"Static directory not found at {STATIC_DIR}")
+
+app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

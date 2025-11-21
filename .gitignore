@@ -21,3 +21,6 @@ pycache/
 *.csv
 
 upload_to_hub.py
+
+.DS_Store
+__pycache__/
