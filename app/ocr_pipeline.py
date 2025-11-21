@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageFilter
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 DEVICE = torch.device(
@@ -36,7 +36,7 @@ class OcrEngine:
     def image_to_text(self, data: bytes) -> Optional[str]:
         if not self.available:
             return None
-        image = Image.open(io.BytesIO(data)).convert("RGB")
+        image = self._prepare_image(data)
 
         # TrOCR is line-oriented; segment lines to avoid collapsing whole documents into one token.
         lines = self._split_lines(image)
@@ -55,6 +55,26 @@ class OcrEngine:
         if not texts:
             return None
         return "\n".join(texts)
+
+    def _prepare_image(self, data: bytes, max_side: int = 1400) -> Image.Image:
+        """
+        Basic preprocessing to keep OCR fast and legible:
+        - Convert to RGB
+        - Resize so the longest side is at most `max_side` pixels
+        - Light sharpening to help printed text
+        """
+        image = Image.open(io.BytesIO(data)).convert("RGB")
+
+        # Downscale very large images to reduce computation
+        w, h = image.size
+        scale = min(1.0, max_side / max(w, h))
+        if scale < 1.0:
+            new_size = (int(w * scale), int(h * scale))
+            image = image.resize(new_size, resample=Image.Resampling.BICUBIC)
+
+        # Subtle sharpen to improve contrast for printed text
+        image = image.filter(ImageFilter.UnsharpMask(radius=1.0, percent=80, threshold=3))
+        return image
 
     def _split_lines(self, image: Image.Image) -> List[Image.Image]:
         """
