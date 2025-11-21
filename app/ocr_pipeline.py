@@ -42,46 +42,21 @@ class OcrEngine:
             return None
         image = self._prepare_image(data)
 
-        # TrOCR is line-oriented; segment lines to avoid collapsing whole documents into one token.
-        lines = self._split_lines(image)
-
-        texts: List[str] = []
-
         try:
-            # Batch lines to keep GPU/MPS busy and cut latency.
-            pixel_values = self.processor(
-                images=lines,
-                return_tensors="pt",
-                padding=True,  # ensure batch has consistent shapes
-            ).pixel_values.to(DEVICE)
+            # Simpler: process the whole image as one sample to avoid batch padding issues.
+            pixel_values = self.processor(images=image, return_tensors="pt").pixel_values.to(DEVICE)
             generated_ids = self.model.generate(
                 pixel_values,
-                max_new_tokens=96,  # still bounded, handles denser lines
-                num_beams=2,  # light beam search for quality on printed text
+                max_new_tokens=96,
+                num_beams=2,
                 do_sample=False,
                 early_stopping=True,
             )
-            decoded = self.processor.batch_decode(generated_ids, skip_special_tokens=True)
-            texts = [t.strip() for t in decoded if t.strip()]
+            text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
+            return text if text else None
         except Exception as exc:
-            # Fallback: process lines one-by-one to avoid padding/shape issues in some builds
-            print(f"[OCR] Batch decode failed, retrying single-line: {exc}")
-            for line in lines:
-                pv = self.processor(images=line, return_tensors="pt").pixel_values.to(DEVICE)
-                ids = self.model.generate(
-                    pv,
-                    max_new_tokens=96,
-                    num_beams=1,
-                    do_sample=False,
-                    early_stopping=True,
-                )
-                text = self.processor.batch_decode(ids, skip_special_tokens=True)[0].strip()
-                if text:
-                    texts.append(text)
-
-        if not texts:
+            print(f"[OCR] Failed to decode image: {exc}")
             return None
-        return "\n".join(texts)
 
     def _prepare_image(self, data: bytes, max_side: int = 1100) -> Image.Image:
         """
