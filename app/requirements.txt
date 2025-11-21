@@ -3,3 +3,7 @@ uvicorn[standard]
 torch
 transformers
 sentencepiece
+scikit-learn
+pandas
+numpy
+Pillow

@@ -1,8 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from transformers import pipeline
 import torch
+
+from app.hybrid_inference import HybridPredictor
+from app.ocr_pipeline import OcrEngine
 
 # --- App Setup ---
 app = FastAPI(
@@ -15,14 +18,15 @@ app = FastAPI(
 # This is a global variable that will hold the loaded model.
 # The model is loaded once when the application starts.
 classifier = None
+hybrid_predictor = None
+ocr_engine = None
 
 @app.on_event("startup")
 def load_model():
     """
-    Load the model from the Hugging Face Hub on application startup.
-    This is a long-running operation and should only be done once.
+    Load text classifier (transformer), optional hybrid head, and OCR engine.
     """
-    global classifier
+    global classifier, hybrid_predictor, ocr_engine
     print("Loading model from Hugging Face Hub...")
     
     # Set the device to CPU. For inference, a GPU is often not necessary and
@@ -39,7 +43,21 @@ def load_model():
         tokenizer=model_id,
         device=device
     )
-    print("✅ Model loaded successfully!")
+    print("✅ Base transformer model loaded successfully!")
+
+    # Optional hybrid branch (TF-IDF + Transformer) for Task 1
+    hybrid_predictor = HybridPredictor(artifacts_dir="./artifacts")
+    if hybrid_predictor.available:
+        print("✅ Hybrid TF-IDF + Transformer model loaded.")
+    else:
+        print("⚠️  Hybrid artifacts not found; falling back to transformer-only.")
+
+    # OCR (TrOCR) for Task 2
+    ocr_engine = OcrEngine()
+    if ocr_engine.available:
+        print("✅ TrOCR OCR model loaded.")
+    else:
+        print("⚠️  OCR model unavailable; /predict/ocr will be disabled.")
 
 # --- API Endpoints ---
 class ResumeRequest(BaseModel):
@@ -48,11 +66,19 @@ class ResumeRequest(BaseModel):
 class PredictionResponse(BaseModel):
     category: str
     confidence: float
+    used_hybrid: bool = False
+
+
+class OcrPredictionResponse(BaseModel):
+    text: str
+    category: str
+    confidence: float
+    used_hybrid: bool = False
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(request: ResumeRequest):
     """
-    Accepts resume text and returns the predicted category.
+    Transformer-only classification (original behavior).
     """
     if not classifier:
         raise HTTPException(status_code=503, detail="Model is not loaded yet. Please wait.")
@@ -64,14 +90,74 @@ def predict(request: ResumeRequest):
         prediction = classifier(request.text)[0]
         return PredictionResponse(
             category=prediction['label'],
-            confidence=prediction['score']
+            confidence=prediction['score'],
+            used_hybrid=False
         )
     except Exception as e:
         print(f"Error during prediction: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process the request.")
+
+
+@app.post("/predict/hybrid", response_model=PredictionResponse)
+def predict_hybrid(request: ResumeRequest):
+    """
+    Uses TF-IDF + Transformer hybrid if available, otherwise defaults to transformer.
+    """
+    if not classifier:
+        raise HTTPException(status_code=503, detail="Model is not loaded yet. Please wait.")
+
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Input text cannot be empty.")
+
+    try:
+        if hybrid_predictor and hybrid_predictor.available:
+            result = hybrid_predictor.predict(request.text)
+            if result:
+                label, score = result
+                return PredictionResponse(category=label, confidence=score, used_hybrid=True)
+        # fallback
+        prediction = classifier(request.text)[0]
+        return PredictionResponse(
+            category=prediction["label"],
+            confidence=prediction["score"],
+            used_hybrid=False,
+        )
+    except Exception as e:  # noqa: BLE001
+        print(f"Hybrid prediction error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process the request.")
+
+
+@app.post("/predict/ocr", response_model=OcrPredictionResponse)
+async def predict_ocr(file: UploadFile = File(...)):
+    """
+    Accepts an image, runs deep-learning OCR (TrOCR), then classifies the extracted text.
+    """
+    if not classifier:
+        raise HTTPException(status_code=503, detail="Model is not loaded yet. Please wait.")
+    if not ocr_engine or not ocr_engine.available:
+        raise HTTPException(status_code=503, detail="OCR model is unavailable on this server.")
+
+    try:
+        content = await file.read()
+        text = ocr_engine.image_to_text(content)
+        if not text:
+            raise HTTPException(status_code=400, detail="OCR failed to extract text.")
+
+        if hybrid_predictor and hybrid_predictor.available:
+            result = hybrid_predictor.predict(text)
+            if result:
+                label, score = result
+                return OcrPredictionResponse(text=text, category=label, confidence=score, used_hybrid=True)
+
+        prediction = classifier(text)[0]
+        return OcrPredictionResponse(text=text, category=prediction["label"], confidence=prediction["score"], used_hybrid=False)
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        print(f"OCR prediction error: {e}")
         raise HTTPException(status_code=500, detail="Failed to process the request.")
 
 # --- Static File Serving ---
 # Mount the 'static' directory to serve the index.html file.
 # The path is now relative to the location of this script inside the container.
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
