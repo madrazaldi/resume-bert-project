@@ -46,7 +46,15 @@ def benchmark_transformer(texts, labels) -> float:
     device = 0 if torch.cuda.is_available() else -1
     clf = pipeline("text-classification", model=MODEL_ID, tokenizer=MODEL_ID, device=device)
     start = time.time()
-    preds = [clf(t)[0]["label"] for t in texts]
+    # Batch call with truncation/padding to avoid 512+ token errors
+    outputs = clf(
+        texts,
+        truncation=True,
+        padding=True,
+        max_length=512,
+        batch_size=8,
+    )
+    preds = [o["label"] for o in outputs]
     elapsed = time.time() - start
     correct = sum(p == y for p, y in zip(preds, labels))
     acc = correct / len(labels)
