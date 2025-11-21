@@ -1,0 +1,2 @@
+val_f1,test_acc,test_f1,config
+0.7246433424268877,0.8189134808853119,0.7626822173353585,distilbert-base-uncased
