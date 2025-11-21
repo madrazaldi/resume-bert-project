@@ -11,12 +11,12 @@ Assumptions:
 """
 
 import argparse
-import random
 import time
 from typing import Iterable, Tuple
 
 import pandas as pd
 import torch
+from sklearn.metrics import classification_report, f1_score, precision_score, recall_score
 from transformers import pipeline
 
 from app.hybrid_inference import HybridPredictor
@@ -42,6 +42,21 @@ def load_data(path: str, sample: int | None) -> Tuple[Iterable[str], Iterable[st
     return df["cleaned_resume"].tolist(), df[label_col].tolist()
 
 
+def summarize_metrics(name: str, preds, labels, elapsed: float):
+    acc = sum(p == y for p, y in zip(preds, labels)) / len(labels)
+    macro_f1 = f1_score(labels, preds, average="macro")
+    micro_f1 = f1_score(labels, preds, average="micro")
+    macro_p = precision_score(labels, preds, average="macro")
+    micro_p = precision_score(labels, preds, average="micro")
+    macro_r = recall_score(labels, preds, average="macro")
+    micro_r = recall_score(labels, preds, average="micro")
+
+    print(f"[{name}] Accuracy: {acc:.4f} | Macro-F1: {macro_f1:.4f} | Micro-F1: {micro_f1:.4f} (time: {elapsed:.1f}s)")
+    print(f"[{name}] Macro P/R/F1: {macro_p:.4f}/{macro_r:.4f}/{macro_f1:.4f} | Micro P/R/F1: {micro_p:.4f}/{micro_r:.4f}/{micro_f1:.4f}")
+    print(f"[{name}] Classification report:\n{classification_report(labels, preds, digits=4)}")
+    return acc
+
+
 def benchmark_transformer(texts, labels) -> float:
     device = 0 if torch.cuda.is_available() else -1
     clf = pipeline("text-classification", model=MODEL_ID, tokenizer=MODEL_ID, device=device)
@@ -56,10 +71,7 @@ def benchmark_transformer(texts, labels) -> float:
     )
     preds = [o["label"] for o in outputs]
     elapsed = time.time() - start
-    correct = sum(p == y for p, y in zip(preds, labels))
-    acc = correct / len(labels)
-    print(f"[Transformer] Accuracy: {acc:.4f} on {len(labels)} samples (time: {elapsed:.1f}s)")
-    return acc
+    return summarize_metrics("Transformer", preds, labels, elapsed)
 
 
 def benchmark_hybrid(texts, labels) -> float:
@@ -73,10 +85,7 @@ def benchmark_hybrid(texts, labels) -> float:
         result = predictor.predict(t)
         preds.append(result[0] if result else None)
     elapsed = time.time() - start
-    correct = sum(p == y for p, y in zip(preds, labels))
-    acc = correct / len(labels)
-    print(f"[Hybrid] Accuracy: {acc:.4f} on {len(labels)} samples (time: {elapsed:.1f}s)")
-    return acc
+    return summarize_metrics("Hybrid", preds, labels, elapsed)
 
 
 def main():
