@@ -5,13 +5,13 @@ Lightweight inference utilities for the hybrid TF-IDF + Transformer model.
 import json
 import os
 import pickle
+from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import numpy as np
 import torch
-
-from hybrid_training import HybridClassifier, HybridConfig  # reuse definitions
-from transformers import AutoTokenizer
+import torch.nn as nn
+from transformers import AutoModel, AutoTokenizer
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -19,6 +19,62 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def load_pickle(path: str):
     with open(path, "rb") as f:
         return pickle.load(f)
+
+
+@dataclass
+class HybridConfig:
+    transformer_name: str = "distilbert-base-uncased"
+    max_length: int = 256
+    tfidf_max_features: int = 20000
+    svd_components: int = 128
+    tfidf_hidden: int = 256
+    dropout: float = 0.2
+    lr_transformer: float = 2e-5
+    lr_heads: float = 5e-4
+    batch_size: int = 8
+    epochs: int = 3
+    warmup_ratio: float = 0.1
+    grad_clip: float = 1.0
+    output_dir: str = "./artifacts"
+
+
+class HybridClassifier(nn.Module):
+    """
+    Transformer CLS pooled output -> concat with TF-IDF MLP -> classifier.
+    """
+
+    def __init__(self, transformer_name: str, tfidf_dim: int, tfidf_hidden: int, num_labels: int, dropout: float):
+        super().__init__()
+        self.transformer = AutoModel.from_pretrained(transformer_name)
+        hidden = self.transformer.config.hidden_size
+
+        self.tfidf_mlp = nn.Sequential(
+            nn.Linear(tfidf_dim, tfidf_hidden),
+            nn.BatchNorm1d(tfidf_hidden),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(tfidf_hidden, tfidf_hidden),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+        )
+        self.classifier = nn.Linear(hidden + tfidf_hidden, num_labels)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, input_ids, attention_mask, tfidf_features, labels=None):
+        outputs = self.transformer(input_ids=input_ids, attention_mask=attention_mask)
+        pooled = outputs.last_hidden_state[:, 0]  # CLS token
+        pooled = self.dropout(pooled)
+
+        tfidf_repr = self.tfidf_mlp(tfidf_features)
+        concat = torch.cat([pooled, tfidf_repr], dim=1)
+        logits = self.classifier(concat)
+
+        loss = None
+        if labels is not None:
+            loss_fn = nn.CrossEntropyLoss()
+            loss = loss_fn(logits, labels)
+
+        return {"loss": loss, "logits": logits}
 
 
 class HybridPredictor:
