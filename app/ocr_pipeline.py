@@ -44,11 +44,15 @@ class OcrEngine:
 
         try:
             # Simpler: process the whole image as one sample to avoid batch padding issues.
-            pixel_values = self.processor(images=image, return_tensors="pt").pixel_values.to(DEVICE)
+            pixel_values = self.processor(
+                images=[image],  # wrap in list to ensure batch dimension
+                return_tensors="pt",
+                padding=True,
+            ).pixel_values.to(DEVICE)
             generated_ids = self.model.generate(
                 pixel_values,
                 max_new_tokens=96,
-                num_beams=2,
+                num_beams=1,
                 do_sample=False,
                 early_stopping=True,
             )
