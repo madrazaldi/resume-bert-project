@@ -314,6 +314,15 @@
                     </div>
                     <h3 class="text-2xl font-semibold text-white mb-2">Analyzing Resume</h3>
                     <p class="text-white/70 loading-dots">Processing your content with AI</p>
+                    <div id="ocr-progress" class="hidden mt-4 max-w-lg mx-auto text-left">
+                        <div class="flex items-center justify-between text-white/70 text-sm mb-1">
+                            <span id="progress-label">Preparing OCR...</span>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                            <div id="progress-bar" class="h-2 bg-indigo-400 transition-all duration-300" style="width: 0%;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Success Result -->
@@ -392,6 +401,10 @@
         const modelFlag = document.getElementById('model-flag');
         const extractedTextWrap = document.getElementById('extracted-text-wrap');
         const extractedText = document.getElementById('extracted-text');
+        const progressWrap = document.getElementById('ocr-progress');
+        const progressBar = document.getElementById('progress-bar');
+        const progressLabel = document.getElementById('progress-label');
+        const progressPercent = document.getElementById('progress-percent');
 
         // Mode + OCR elements
         let currentMode = 'text';
@@ -402,6 +415,18 @@
         const uploadBtn = document.getElementById('upload-btn');
         const fileInfo = document.getElementById('file-info');
         const resumeFile = document.getElementById('resume-file');
+
+        function setProgress(value, label) {
+            progressBar.style.width = `${value}%`;
+            progressPercent.textContent = `${Math.round(value)}%`;
+            if (label) progressLabel.textContent = label;
+        }
+
+        function bumpProgress(max = 90) {
+            const current = parseFloat(progressBar.style.width) || 0;
+            const next = Math.min(max, current + 5);
+            setProgress(next, progressLabel.textContent || 'Processing...');
+        }
 
         // Theme Toggle
         const themeToggle = document.getElementById('theme-toggle');
@@ -477,11 +502,14 @@
             modelFlag.textContent = '';
             extractedTextWrap.classList.add('hidden');
             extractedText.textContent = '';
+            progressWrap.classList.add('hidden');
+            setProgress(0, 'Preparing OCR...');
         }
 
         // Classification logic
         classifyBtn.addEventListener('click', async () => {
             let payload = null;
+            let progressTimer = null;
 
             // UI State: Loading
             resultContainer.classList.remove('hidden');
@@ -516,11 +544,21 @@
                     fileInfo.classList.remove('text-red-300');
                     const formData = new FormData();
                     formData.append('file', file);
+
+                    // OCR progress UI
+                    progressWrap.classList.remove('hidden');
+                    setProgress(10, 'Uploading image...');
+                    progressTimer = setInterval(() => bumpProgress(85), 800);
+
                     response = await fetch('/predict/ocr', { method: 'POST', body: formData });
                 }
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                if (currentMode === 'ocr') {
+                    setProgress(100, 'Classifying text...');
                 }
 
                 const data = await response.json();
@@ -541,10 +579,19 @@
                         extractedText.textContent = '';
                     }
                     predictionResult.classList.remove('hidden');
+
+                    if (currentMode === 'ocr') {
+                        progressWrap.classList.add('hidden');
+                        setProgress(0, 'Preparing OCR...');
+                    }
                 }, 1000); // Add slight delay for better UX
 
             } catch (error) {
                 console.error('Classification error:', error);
+                if (currentMode === 'ocr') {
+                    setProgress(0, 'OCR failed');
+                    progressWrap.classList.add('hidden');
+                }
                 setTimeout(() => {
                     loadingSpinner.classList.add('hidden');
                     errorMessage.classList.remove('hidden');
@@ -552,6 +599,7 @@
             } finally {
                 classifyBtn.classList.remove('pulse-btn');
                 btnText.textContent = 'Analyze Resume';
+                if (progressTimer) clearInterval(progressTimer);
             }
         });
 
