@@ -1,9 +1,9 @@
 fastapi
 uvicorn[standard]
-torch
+torch==2.2.2
 transformers
 sentencepiece
-scikit-learn==1.7.2
+scikit-learn==1.6.1
 pandas
 numpy
 Pillow
