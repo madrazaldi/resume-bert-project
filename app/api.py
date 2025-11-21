@@ -4,8 +4,9 @@ from pydantic import BaseModel
 from transformers import pipeline
 import torch
 
-from app.hybrid_inference import HybridPredictor
-from app.ocr_pipeline import OcrEngine
+# Local modules live in the same directory when copied into the container
+from hybrid_inference import HybridPredictor
+from ocr_pipeline import OcrEngine
 
 # --- App Setup ---
 app = FastAPI(
