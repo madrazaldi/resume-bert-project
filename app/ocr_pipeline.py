@@ -20,11 +20,11 @@ class OcrEngine:
     Minimal wrapper around TrOCR for turning resume images into text.
     """
 
-    def __init__(self, model_name: str = "microsoft/trocr-base-printed"):
+    def __init__(self, model_name: str = "microsoft/trocr-small-printed", use_fast: bool = True):
         self.model_name = model_name
         self.available = False
         try:
-            self.processor = TrOCRProcessor.from_pretrained(model_name)
+            self.processor = TrOCRProcessor.from_pretrained(model_name, use_fast=use_fast)
             self.model = VisionEncoderDecoderModel.from_pretrained(model_name).to(DEVICE)
             self.model.eval()
             self.available = True
@@ -45,8 +45,9 @@ class OcrEngine:
         pixel_values = self.processor(images=lines, return_tensors="pt").pixel_values.to(DEVICE)
         generated_ids = self.model.generate(
             pixel_values,
-            max_length=96,  # shorter outputs for lines
-            num_beams=2,  # faster than beam=4, still better than greedy
+            max_new_tokens=80,  # shorter outputs for lines
+            num_beams=1,  # greedy decoding for speed
+            do_sample=False,
             early_stopping=True,
         )
         decoded = self.processor.batch_decode(generated_ids, skip_special_tokens=True)

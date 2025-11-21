@@ -31,7 +31,11 @@ def load_model():
     
     # Set the device to CPU. For inference, a GPU is often not necessary and
     # this makes the application more portable.
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = (
+        "mps"
+        if torch.backends.mps.is_available()
+        else ("cuda" if torch.cuda.is_available() else "cpu")
+    )
     print(f"Device set to use {device}")
 
     # Your model's ID on the Hugging Face Hub
