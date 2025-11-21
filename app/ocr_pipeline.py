@@ -20,7 +20,11 @@ class OcrEngine:
     Minimal wrapper around TrOCR for turning resume images into text.
     """
 
-    def __init__(self, model_name: str = "microsoft/trocr-small-stage1", use_fast: bool = False):
+    def __init__(
+        self,
+        model_name: str = "microsoft/trocr-small-printed",  # printed is trained for full-page printed text
+        use_fast: bool = False,
+    ):
         self.model_name = model_name
         self.available = False
         try:
@@ -45,8 +49,8 @@ class OcrEngine:
         pixel_values = self.processor(images=lines, return_tensors="pt").pixel_values.to(DEVICE)
         generated_ids = self.model.generate(
             pixel_values,
-            max_new_tokens=64,  # shorter outputs for lines
-            num_beams=1,  # greedy decoding for speed
+            max_new_tokens=96,  # still bounded, handles denser lines
+            num_beams=2,  # light beam search for quality on printed text
             do_sample=False,
             early_stopping=True,
         )
@@ -56,7 +60,7 @@ class OcrEngine:
             return None
         return "\n".join(texts)
 
-    def _prepare_image(self, data: bytes, max_side: int = 1000) -> Image.Image:
+    def _prepare_image(self, data: bytes, max_side: int = 1100) -> Image.Image:
         """
         Basic preprocessing to keep OCR fast and legible:
         - Convert to RGB
