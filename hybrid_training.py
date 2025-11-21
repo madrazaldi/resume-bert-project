@@ -33,7 +33,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, Dataset
-from transformers import (AdamW, AutoModel, AutoTokenizer,
+import torch.optim as optim
+from transformers import (AutoModel, AutoTokenizer,
                           get_linear_schedule_with_warmup)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -208,7 +209,7 @@ def train_hybrid(
         target = transformer_params if name.startswith("transformer") else head_params
         target.append(param)
 
-    optimizer = AdamW(
+    optimizer = optim.AdamW(
         [
             {"params": transformer_params, "lr": cfg.lr_transformer},
             {"params": head_params, "lr": cfg.lr_heads},

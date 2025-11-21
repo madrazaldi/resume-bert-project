@@ -3,7 +3,7 @@ import numpy as np
 import re
 import nltk
 from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
+from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -15,16 +15,34 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 # --- NLTK Setup ---
-try:
-    stopwords.words('english')
-    nltk.data.find('corpora/wordnet.zip/wordnet')
-except LookupError:
-    print("Downloading NLTK data...")
-    nltk.download('stopwords', quiet=True)
-    nltk.download('punkt', quiet=True)
-    nltk.download('wordnet', quiet=True)
-    nltk.download('omw-1.4', quiet=True)
-    print("NLTK data downloaded.")
+def ensure_nltk_data():
+    resources = [
+        ('stopwords', 'corpora/stopwords'),
+        ('punkt', 'tokenizers/punkt'),
+        ('punkt_tab', 'tokenizers/punkt_tab'),
+    ]
+
+    missing = []
+    for name, path in resources:
+        try:
+            print(f"Checking NLTK resource '{name}'...")
+            nltk.data.find(path)
+        except Exception:
+            # For corrupted or missing resources, re-download
+            missing.append(name)
+
+    if missing:
+        print("Downloading NLTK data...")
+        for name in missing:
+            print(f"  - downloading {name}")
+            nltk.download(name, quiet=True, force=True)
+        print("NLTK data downloaded.")
+    else:
+        print("All NLTK resources are present.")
+
+ensure_nltk_data()
+
+STEMMER = PorterStemmer()
 
 # --- Configuration ---
 INPUT_FILE = 'Resume.csv'
@@ -62,9 +80,8 @@ def preprocess_text(text):
     stop_words = set(stopwords.words('english'))
     tokens = [word for word in tokens if word not in stop_words and len(word) > 1]
 
-    # 7. Lemmatization
-    lemmatizer = WordNetLemmatizer()
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
+    # 7. Stemming (lightweight to avoid WordNet dependency)
+    tokens = [STEMMER.stem(word) for word in tokens]
 
     return ' '.join(tokens)
 
@@ -156,4 +173,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
