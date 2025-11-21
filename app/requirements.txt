@@ -3,7 +3,7 @@ uvicorn[standard]
 torch
 transformers
 sentencepiece
-scikit-learn
+scikit-learn==1.7.2
 pandas
 numpy
 Pillow
