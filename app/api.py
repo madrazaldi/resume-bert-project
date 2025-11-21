@@ -60,12 +60,12 @@ def load_model():
     else:
         print("⚠️  Hybrid artifacts not found; falling back to transformer-only.")
 
-    # OCR (TrOCR) for Task 2
+    # OCR via external API (Task 2)
     ocr_engine = OcrEngine()
     if ocr_engine.available:
-        print("✅ TrOCR OCR model loaded.")
+        print("✅ External OCR ready (OCR.Space).")
     else:
-        print("⚠️  OCR model unavailable; /predict/ocr will be disabled.")
+        print("⚠️  OCR is unavailable; /predict/ocr will be disabled.")
 
 # --- API Endpoints ---
 class ResumeRequest(BaseModel):
